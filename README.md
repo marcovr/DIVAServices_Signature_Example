@@ -1,0 +1,2 @@
+# DIVAServices_Binarization_Example
+Example visualizing different Binarization methods in JavaScript
