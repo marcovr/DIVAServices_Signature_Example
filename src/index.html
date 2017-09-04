@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
+        crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link href="jumbotron.css" rel="stylesheet">
+</head>
+<script>
+    var currentImage;
+    var currentFile;
+    var identifier;
+
+    async function dogBinarization() {
+        var data = JSON.stringify({
+            "parameters": {
+                "threshold": 0.1,
+                "gauss1": 15,
+                "gauss2": 1.5
+            },
+            "data": [
+                {
+                    "inputImage": identifier
+                }
+            ]
+        });
+        fetch("http://divaservices.unifr.ch/api/v2/binarization/dogbinarization/1", {
+            method: "POST",
+            body: data,
+            headers: new Headers({ 'content-type': 'application/json' })
+        }).then(function (res) {
+            return res.json();
+        }).then(async function (data) {
+            var result = await getResult(data.results[0].resultLink);
+            var img = document.createElement("img");
+            img.src = result.output[0].file.url;
+            document.getElementById("dog").appendChild(img);
+        })
+    }
+
+    async function otsuBinarization() {
+        var data = JSON.stringify({
+            "parameters": {},
+            "data": [
+                {
+                    "inputImage": identifier
+                }
+            ]
+        });
+
+        fetch("http://divaservices.unifr.ch/api/v2/binarization/otsubinarization/1", {
+            method: "POST",
+            body: data,
+            headers: new Headers({ 'content-type': 'application/json' })
+        }).then(function (res) {
+            return res.json();
+        }).then(async function (data) {
+            var result = await getResult(data.results[0].resultLink);
+            var img = document.createElement("img");
+            img.src = result.output[0].file.url;
+            document.getElementById("otsu").appendChild(img);
+        })
+    }
+
+    function getResult(url) {
+        return new Promise(resolve => {
+            fetch(url, {
+                method: "GET"
+            }).then(function (res) {
+                return res.json();
+            }).then(function (data) {
+                if (data.status === "done") {
+                    resolve(data);
+                } else {
+                    setTimeout(function () {
+                        resolve(getResult(url));
+                    }, 1000);
+                }
+            })
+        })
+    }
+
+    function getUploadResult(collectionName) {
+        return new Promise(resolve => {
+            fetch('http://divaservices.unifr.ch/api/v2/collections/' + collectionName, {
+                method: "GET"
+            }).then(function (res) {
+                return res.json();
+            }).then(function (data) {
+                if (data.statusCode === 200) {
+                    resolve(data.files[0].file.identifier);
+                } else {
+                    setTimeout(function () {
+                        resolve(getUploadResult(collectionName));
+                    }, 1000);
+                }
+            })
+        })
+    }
+
+    function encodeImageFileAsURL(element) {
+        var file = element.files[0];
+        var reader = new FileReader();
+        reader.onloadend = function () {
+            currentImage = reader.result;
+            currentFile = file;
+            uploadImage();
+        }
+        reader.onload = function(e) {
+            var img = document.createElement('img');
+            img.src = e.target.result;
+            document.getElementById('orig_image').appendChild(img);
+            document.getElementById('upload_info').style.display = 'none';
+        }
+
+        reader.readAsDataURL(file);
+
+    }
+
+    function uploadImage() {
+        var data = JSON.stringify({
+            "files": [
+                {
+                    "type": "base64",
+                    "value": currentImage,
+                    "name": currentFile.name.split('.')[0],
+                    "extension": currentFile.name.split('.')[1]
+                }
+            ]
+        });
+        fetch("http://divaservices.unifr.ch/api/v2/collections", {
+            method: "POST",
+            body: data,
+            headers: new Headers({ 'content-type': 'application/json' })
+        }).then(function (res) {
+            return res.json();
+        }).then(async function (data) {
+            identifier = await getUploadResult(data.collection);
+            document.getElementById('otsuBtn').disabled = false;
+            document.getElementById('sauvolaBtn').disabled = false;
+            document.getElementById('dogBtn').disabled = false;
+            document.getElementById('ocropusBtn').disabled = false;
+        })
+    }
+
+</script>
+
+<body>
+    <div class="jumbotron">
+        <div class="container">
+            <h1>Binarization Experimentation</h1>
+            <p>This is a template for a simple marketing or informational website. It includes a large callout called a jumbotron
+                and three supporting pieces of content. Use it as a starting point to create something more unique.</p>
+            <p>
+                <h3>Upload</h3>
+                <label class="btn btn-primary" for="my-file-selector">
+                            <input id="my-file-selector" type="file" style="display:none" 
+                            onchange="$('#upload-file-info').html(this.files[0].name);encodeImageFileAsURL(this);">
+                            Choose File...
+                        </label>
+                <span class='label label-info' id="upload-file-info"></span>
+            </p>
+
+            <p id="upload_info_block">
+                <div id="upload_info"><strong>Upload a file first</strong></div>
+                <div id="orig_image"></div>
+            </p>
+
+            <div class="row">
+                <div class="col-md-auto">
+                    <div class="control-group button-wrapper">
+                        <button class="btn btn-primary btn-block" onclick="otsuBinarization()" disabled=true id='otsuBtn'>Otsu Binarization</button>
+                    </div>
+                </div>
+                <div class="col-md-auto">
+                    <div class="control-group button-wrapper">
+                        <button class="btn btn-primary btn-block" onclick="sauvolaBinarization()" disabled=true id='sauvolaBtn'>Sauvola Binarization</button>
+                    </div>
+                </div>
+                <div class="col-md-auto">
+                    <div class="control-group button-wrapper">
+                        <button class="btn btn-primary btn-block" onclick="dogBinarization()" disabled=true id='dogBtn'>DoG Binarization</button>
+                    </div>
+                </div>
+                <div class="col-md-auto">
+                    <div class="control-group button-wrapper">
+                        <button class="btn btn-primary btn-block" onclick="ocropusBinarization()" disabled=true id='ocropusBtn'>OCRopus Binarization</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Example row of columns -->
+        <div class="row">
+            <div class="col-md-auto" id="otsu">
+                <h2>Otsu</h2>
+            </div>
+            <div class="col-md-auto" id="sauvola">
+                <h2>Sauvola</h2>
+            </div>
+            <div class="col-md-auto" id="dog">
+                <h2>DoG</h2>
+            </div>
+            <div class="col-md-auto" id="ocropus">
+                <h2>OCRopus</h2>
+            </div>
+        </div>
+</body>
+
+</html>
