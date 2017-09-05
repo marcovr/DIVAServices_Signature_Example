@@ -5,7 +5,6 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
         crossorigin="anonymous">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -20,7 +19,31 @@
      * Perform DoG Binarization
      * */
     async function dogBinarization() {
-        alert('Implement your code here!')
+        document.getElementById("spinner").style.visibility = 'visible';
+        var data = JSON.stringify({
+            "parameters": {
+                "threshold": document.getElementById("thresh_slider").value,
+                "gauss1": document.getElementById("gauss1_slider").value,
+                "gauss2": document.getElementById("gauss2_slider").value
+            },
+            "data": [
+                {
+                    "inputImage": identifier
+                }
+            ]
+        });
+        fetch("http://divaservices.unifr.ch/api/v2/binarization/dogbinarization/1", {
+            method: "POST",
+            body: data,
+            headers: new Headers({ 'content-type': 'application/json' })
+        }).then(function (res) {
+            return res.json();
+        }).then(async function (data) {
+            var result = await getResult(data.results[0].resultLink);
+            document.getElementById("dog").src = result.output[0].file.url
+            document.getElementById("spinner").style.visibility = 'hidden';
+
+        })
     }
 
     /**
@@ -55,14 +78,54 @@
      * Perform Sauvola Binarization
      * */
     async function sauvolaBinarization() {
-        alert('Implement your code here!');
+        document.getElementById("spinner").style.visibility = 'visible';
+        var data = JSON.stringify({
+            "parameters": {},
+            "data": [
+                {
+                    "inputImage": identifier
+                }
+            ]
+        });
+
+        fetch("http://divaservices.unifr.ch/api/v2/binarization/sauvolabinarization/1", {
+            method: "POST",
+            body: data,
+            headers: new Headers({ 'content-type': 'application/json' })
+        }).then(function (res) {
+            return res.json();
+        }).then(async function (data) {
+            var result = await getResult(data.results[0].resultLink);
+            document.getElementById("sauvola").src = result.output[0].file.url
+            document.getElementById("spinner").style.visibility = 'hidden';
+        })
     }
 
     /**
      * Perform OCRopus Binarization
      * */
     async function ocropusBinarization() {
-        alert('Implement your code here');
+        document.getElementById("spinner").style.visibility = 'visible';
+        var data = JSON.stringify({
+            "parameters": {},
+            "data": [
+                {
+                    "inputImage": identifier
+                }
+            ]
+        });
+
+        fetch("http://divaservices.unifr.ch/api/v2/binarization/ocropusbinarization/1", {
+            method: "POST",
+            body: data,
+            headers: new Headers({ 'content-type': 'application/json' })
+        }).then(function (res) {
+            return res.json();
+        }).then(async function (data) {
+            var result = await getResult(data.results[0].resultLink);
+            document.getElementById("ocropus").src = result.output[0].file.url
+            document.getElementById("spinner").style.visibility = 'hidden';
+        })
     }
     
     /**
@@ -246,7 +309,7 @@
                 <h2>DoG</h2>
                 <img id="dog"></img>
             </div>
-            <div class="col-md-auto" id="ocropus">
+            <div class="col-md-auto">
                 <h2>OCRopus</h2>
                 <img id="ocropus"></img>
             </div>
