@@ -147,6 +147,7 @@
             <h1>OCR Recognition Experimentation</h1>
             <p>
                 <h3>Upload</h3>
+                <div>Make sure that the file ending of the image is .bin.png otherwise the application will not work!</div>
                 <label class="btn btn-primary" for="my-file-selector">
                             <input id="my-file-selector" type="file" style="display:none" 
                             onchange="$('#upload-file-info').html(this.files[0].name);encodeImageFileAsURL(this);">
