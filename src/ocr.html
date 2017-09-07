@@ -15,29 +15,20 @@
     var currentImage;
     var currentFile;
     var identifier;
+    var collection;
 
-    /**
-     * Perform DoG Binarization
-     * */
-    async function dogBinarization() {
-        alert('Implement your code here!')
-    }
-
-    /**
-     * Perform Otsu Binarization
-     * */
-    async function otsuBinarization() {
+    function recognize() {
         document.getElementById("spinner").style.visibility = 'visible';
         var data = JSON.stringify({
-            "parameters": {},
-            "data": [
+            "data":[
                 {
-                    "inputImage": identifier
+                    "dataFolder":collection,
+                    "recognitionModel":"ocr_models/input0.gz"
                 }
             ]
         });
 
-        fetch("http://divaservices.unifr.ch/api/v2/binarization/otsubinarization/1", {
+        fetch("http://divaservices.unifr.ch/api/v2/ocr/ocropusrecognize/1", {
             method: "POST",
             body: data,
             headers: new Headers({ 'content-type': 'application/json' })
@@ -45,26 +36,15 @@
             return res.json();
         }).then(async function (data) {
             var result = await getResult(data.results[0].resultLink);
-            document.getElementById("otsu").src = result.output[0].file.url
-            document.getElementById("spinner").style.visibility = 'hidden';
+            fetch(result.output[0].file.url, {
+                method: "GET"
+            }).then(async function (res){
+                document.getElementById("result").innerHTML = await res.text();
+                document.getElementById("spinner").style.visibility = 'hidden';
+            });
+            
         })
     }
-
-
-    /**
-     * Perform Sauvola Binarization
-     * */
-    async function sauvolaBinarization() {
-        alert('Implement your code here!');
-    }
-
-    /**
-     * Perform OCRopus Binarization
-     * */
-    async function ocropusBinarization() {
-        alert('Implement your code here');
-    }
-    
     /**
      * 
      * Fetch the result from a given url
@@ -129,9 +109,7 @@
             document.getElementById('orig_image').src = e.target.result;
             document.getElementById('upload_info').style.display = 'none';
         }
-
         reader.readAsDataURL(file);
-
     }
 
     /**
@@ -144,7 +122,7 @@
                     "type": "base64",
                     "value": currentImage,
                     "name": currentFile.name.split('.')[0],
-                    "extension": currentFile.name.split('.')[1]
+                    "extension": currentFile.name.split('.')[1] + '.' + currentFile.name.split('.')[2]
                 }
             ]
         });
@@ -155,22 +133,10 @@
         }).then(function (res) {
             return res.json();
         }).then(async function (data) {
+            collection = data.collection;
             identifier = await getUploadResult(data.collection);
-            document.getElementById('otsuBtn').disabled = false;
-            document.getElementById('sauvolaBtn').disabled = false;
-            document.getElementById('dogBtn').disabled = false;
-            document.getElementById('ocropusBtn').disabled = false;
+            document.getElementById('recBtn').disabled = false;
         })
-    }
-
-    function updateThresh() {
-        document.getElementById("threshCurrentValue").innerHTML = "Threshold: " + document.getElementById("thresh_slider").value;
-    }
-    function updateGauss1() {
-        document.getElementById("gauss1CurrentValue").innerHTML = "Gauss1: " + document.getElementById("gauss1_slider").value;
-    }
-    function updateGauss2() {
-        document.getElementById("gauss2CurrentValue").innerHTML = "Gauss2: " + document.getElementById("gauss2_slider").value;
     }
 
 </script>
@@ -178,8 +144,7 @@
 <body>
     <div class="jumbotron">
         <div class="container">
-            <h1>Binarization Experimentation</h1>
-            <p>This is an example for making Binarization. Keep having fun at ManuSciences!</p>
+            <h1>OCR Recognition Experimentation</h1>
             <p>
                 <h3>Upload</h3>
                 <label class="btn btn-primary" for="my-file-selector">
@@ -198,29 +163,7 @@
             <div class="row">
                 <div class="col-md-auto">
                     <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="otsuBinarization()" disabled=true id='otsuBtn'>Otsu Binarization</button>
-                    </div>
-                </div>
-                <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="sauvolaBinarization()" disabled=true id='sauvolaBtn'>Sauvola Binarization</button>
-                    </div>
-                </div>
-                <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="dogBinarization()" disabled=true id='dogBtn'>DoG Binarization</button>
-                        <div id='threshCurrentValue'>Threshold: 0.1</div>
-                        <input type="range" id='thresh_slider' onchange="updateThresh()" min="0" max="1" step="0.1" value="0.1">
-                        <div id='gauss1CurrentValue'>Gauss1: 15</div>
-                        <input type="range" id='gauss1_slider' onchange="updateGauss1()" min="1" max="25" step="1" value="15">
-                        <div id='gauss2CurrentValue'>Gauss2: 1.5</div>
-                        <input type="range" id='gauss2_slider' onchange="updateGauss2()" min="0.1" max="2.5" step="0.1" value="1.5">
-
-                    </div>
-                </div>
-                <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="ocropusBinarization()" disabled=true id='ocropusBtn'>OCRopus Binarization</button>
+                        <button class="btn btn-primary btn-block" onclick="recognize()" disabled=true id='recBtn'>Recognize!</button>
                     </div>
                 </div>
             </div>
@@ -234,20 +177,8 @@
         </div>
         <div class="row">
             <div class="col-md-auto">
-                <h2>Otsu</h2>
-                <img id='otsu'></img>
-            </div>
-            <div class="col-md-auto">
-                <h2>Sauvola</h2>
-                <img id="sauvola"></img>
-            </div>
-            <div class="col-md-auto">
-                <h2>DoG</h2>
-                <img id="dog"></img>
-            </div>
-            <div class="col-md-auto" id="ocropus">
-                <h2>OCRopus</h2>
-                <img id="ocropus"></img>
+                <h2>Recognition Result</h2>
+                <div id='result'></div>
             </div>
         </div>
 </body>
