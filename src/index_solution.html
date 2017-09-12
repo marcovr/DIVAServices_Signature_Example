@@ -47,6 +47,37 @@
     }
 
     /**
+     * Perform OCRopus Binarization with skew correction
+     * */
+    async function ocropusSkewBinarization() {
+        document.getElementById("spinner").style.visibility = 'visible';
+        var data = JSON.stringify({
+            "parameters": {
+                "enableSkew": "true",
+                "maxskew": document.getElementById("maxskew_slider").value,
+                "skewsteps": document.getElementById("skewsteps_slider").value
+            },
+            "data": [
+                {
+                    "inputImage": identifier
+                }
+            ]
+        });
+        fetch("http://divaservices.unifr.ch/api/v2/binarization/ocropusbinarizationskew/1", {
+            method: "POST",
+            body: data,
+            headers: new Headers({ 'content-type': 'application/json' })
+        }).then(function (res) {
+            return res.json();
+        }).then(async function (data) {
+            var result = await getResult(data.results[0].resultLink);
+            document.getElementById("ocropusskew").src = result.output[0].file.url
+            document.getElementById("spinner").style.visibility = 'hidden';
+
+        })
+    }
+
+    /**
      * Perform Otsu Binarization
      * */
     async function otsuBinarization() {
@@ -127,7 +158,7 @@
             document.getElementById("spinner").style.visibility = 'hidden';
         })
     }
-    
+
     /**
      * 
      * Fetch the result from a given url
@@ -223,9 +254,15 @@
             document.getElementById('sauvolaBtn').disabled = false;
             document.getElementById('dogBtn').disabled = false;
             document.getElementById('ocropusBtn').disabled = false;
+            document.getElementById('ocroSkewBtn').disabled = false;
         })
     }
-
+    function updateMaxskew() {
+        document.getElementById("maxSkewCurrentValue").innerHTML = "maxskew: " + document.getElementById("maxskew_slider").value;
+    } 
+    function updateSkewSteps() {
+        document.getElementById("skewStepsCurrentValue").innerHTML = "skewsteps: " + document.getElementById("skewsteps_slider").value;
+    }
     function updateThresh() {
         document.getElementById("threshCurrentValue").innerHTML = "Threshold: " + document.getElementById("thresh_slider").value;
     }
@@ -283,6 +320,16 @@
                 </div>
                 <div class="col-md-auto">
                     <div class="control-group button-wrapper">
+                        <button class="btn btn-primary btn-block" onclick="ocropusSkewBinarization()" disabled=true id='ocroSkewBtn'>OCRopus Binarization (with skew correction)</button>
+                        <div id='maxSkewCurrentValue'>maxskew: 2</div>
+                        <input type="range" id='maxskew_slider' onchange="updateMaxskew()" min="1" max="15" step="1" value="2">
+                        <div id='skewStepsCurrentValue'>skewsteps: 8</div>
+                        <input type="range" id='skewsteps_slider' onchange="updateSkewSteps()" min="1" max="10" step="1" value="8">
+
+                    </div>
+                </div>
+                <div class="col-md-auto">
+                    <div class="control-group button-wrapper">
                         <button class="btn btn-primary btn-block" onclick="ocropusBinarization()" disabled=true id='ocropusBtn'>OCRopus Binarization</button>
                     </div>
                 </div>
@@ -311,6 +358,10 @@
             <div class="col-md-auto">
                 <h2>OCRopus</h2>
                 <img id="ocropus"></img>
+            </div>
+            <div class="col-md-auto">
+                <h2>OCRopus (Skew Corrected)</h2>
+                <img id="ocropusskew"></img>
             </div>
         </div>
 </body>
