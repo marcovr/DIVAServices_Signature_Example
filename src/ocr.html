@@ -18,9 +18,11 @@
     var collection;
 
     async function recognize() {
+        document.getElementById("spinner").style.visibility = 'visible';
         await binarize();
         await segment();
         await recText();
+        document.getElementById("spinner").style.visibility = 'hidden';
     }
 
     function recText() {
@@ -42,16 +44,29 @@
                 return res.json();
             }).then(async function (data) {
                 var result = await getResult(data.results[0].resultLink);
-                fetch(result.output[0].file.url, {
-                    method: "GET"
-                }).then(async function (res) {
-                    document.getElementById("result").innerHTML = await res.text();
-                    document.getElementById("spinner").style.visibility = 'hidden';
-                    resolve();
-                });
+                var text = "";
+                for (var index = 0; index < result.output.length; index++) {
+                    var element = result.output[index];
+                    if (Object.keys(element)[0] === "file") {
+                        if (element.file.name.includes(".txt")) {
+                            text += await getText(element);
+                        }
+                    }
+                }
+                console.log("text:" + text);
+                document.getElementById("result").innerHTML = text;
+                resolve();
+            });
+        });
+    }
 
-            })
-
+    function getText(element) {
+        return new Promise(resolve => {
+            fetch(element.file.url, {
+                method: "GET"
+            }).then(async function (res) {
+                resolve(await res.text() + "<br />");
+            });
         });
     }
 
@@ -88,6 +103,7 @@
                         }
                     }
                 }
+                resolve();
             });
         });
     }
@@ -221,7 +237,6 @@
                 return res.json();
             }).then(async function (data) {
                 collection = data.collection;
-                console.log("new collection: " + collection);
                 resolve();
             });
         });
@@ -238,14 +253,12 @@
                 }
             ]
         });
-        console.log(collection);
         return new Promise(resolve => {
             fetch("http://divaservices.unifr.ch/api/v2/collections/" + collection, {
                 method: "PUT",
                 body: tmpData,
                 headers: new Headers({ 'content-type': 'application/json' })
             }).then(function (res) {
-                console.log(res);
                 return res.json();
             }).then(async function (data) {
                 resolve();
