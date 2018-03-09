@@ -16,46 +16,15 @@
     var identifier;
 
     /**
-     * Perform DoG Binarization
-     * */
-    async function dogBinarization() {
-        document.getElementById("spinner").style.visibility = 'visible';
-        var data = JSON.stringify({
-            "parameters": {
-                "threshold": document.getElementById("thresh_slider").value,
-                "gauss1": document.getElementById("gauss1_slider").value,
-                "gauss2": document.getElementById("gauss2_slider").value
-            },
-            "data": [
-                {
-                    "inputImage": identifier
-                }
-            ]
-        });
-        fetch("http://divaservices.unifr.ch/api/v2/binarization/dogbinarization/1", {
-            method: "POST",
-            body: data,
-            headers: new Headers({ 'content-type': 'application/json' })
-        }).then(function (res) {
-            return res.json();
-        }).then(async function (data) {
-            var result = await getResult(data.results[0].resultLink);
-            document.getElementById("dog").src = result.output[0].file.url
-            document.getElementById("spinner").style.visibility = 'hidden';
-
-        })
-    }
-
-    /**
      * Perform OCRopus Binarization with skew correction
      * */
-    async function ocropusSkewBinarization() {
+    async function ocropusBinarization() {
         document.getElementById("spinner").style.visibility = 'visible';
         var data = JSON.stringify({
             "parameters": {
                 "enableSkew": "true",
-                "maxskew": document.getElementById("maxskew_slider").value,
-                "skewsteps": document.getElementById("skewsteps_slider").value
+                "maxskew": Number(document.getElementById("maxskew_slider").value),
+                "skewsteps": Number(document.getElementById("skewsteps_slider").value)
             },
             "data": [
                 {
@@ -63,7 +32,7 @@
                 }
             ]
         });
-        fetch("http://divaservices.unifr.ch/api/v2/binarization/ocropusbinarizationskew/1", {
+        fetch("http://divaservices.unifr.ch/api/v2/binarization/ocropusbinarization/1", {
             method: "POST",
             body: data,
             headers: new Headers({ 'content-type': 'application/json' })
@@ -71,7 +40,7 @@
             return res.json();
         }).then(async function (data) {
             var result = await getResult(data.results[0].resultLink);
-            document.getElementById("ocropusskew").src = result.output[0].file.url
+            document.getElementById("ocropus").src = result.output[0].file.url
             document.getElementById("spinner").style.visibility = 'hidden';
 
         })
@@ -111,7 +80,10 @@
     async function sauvolaBinarization() {
         document.getElementById("spinner").style.visibility = 'visible';
         var data = JSON.stringify({
-            "parameters": {},
+            "parameters": {
+                "radius": 15,
+                "thres_tune": 0.3
+            },
             "data": [
                 {
                     "inputImage": identifier
@@ -132,32 +104,6 @@
         })
     }
 
-    /**
-     * Perform OCRopus Binarization
-     * */
-    async function ocropusBinarization() {
-        document.getElementById("spinner").style.visibility = 'visible';
-        var data = JSON.stringify({
-            "parameters": {},
-            "data": [
-                {
-                    "inputImage": identifier
-                }
-            ]
-        });
-
-        fetch("http://divaservices.unifr.ch/api/v2/binarization/ocropusbinarization/1", {
-            method: "POST",
-            body: data,
-            headers: new Headers({ 'content-type': 'application/json' })
-        }).then(function (res) {
-            return res.json();
-        }).then(async function (data) {
-            var result = await getResult(data.results[0].resultLink);
-            document.getElementById("ocropus").src = result.output[0].file.url
-            document.getElementById("spinner").style.visibility = 'hidden';
-        })
-    }
 
     /**
      * 
@@ -252,14 +198,12 @@
             identifier = await getUploadResult(data.collection);
             document.getElementById('otsuBtn').disabled = false;
             document.getElementById('sauvolaBtn').disabled = false;
-            document.getElementById('dogBtn').disabled = false;
             document.getElementById('ocropusBtn').disabled = false;
-            document.getElementById('ocroSkewBtn').disabled = false;
         })
     }
     function updateMaxskew() {
         document.getElementById("maxSkewCurrentValue").innerHTML = "maxskew: " + document.getElementById("maxskew_slider").value;
-    } 
+    }
     function updateSkewSteps() {
         document.getElementById("skewStepsCurrentValue").innerHTML = "skewsteps: " + document.getElementById("skewsteps_slider").value;
     }
@@ -283,15 +227,15 @@
             <p>
                 <h3>Upload</h3>
                 <label class="btn btn-primary" for="my-file-selector">
-                            <input id="my-file-selector" type="file" style="display:none" 
-                            onchange="$('#upload-file-info').html(this.files[0].name);encodeImageFileAsURL(this);">
-                            Choose File...
-                        </label>
+                    <input id="my-file-selector" type="file" style="display:none" onchange="$('#upload-file-info').html(this.files[0].name);encodeImageFileAsURL(this);"> Choose File...
+                </label>
                 <span class='label label-info' id="upload-file-info"></span>
             </p>
 
             <p id="upload_info_block">
-                <div id="upload_info"><strong>Upload a file first</strong></div>
+                <div id="upload_info">
+                    <strong>Upload a file first</strong>
+                </div>
                 <img id="orig_image"></img>
             </p>
 
@@ -308,62 +252,35 @@
                 </div>
                 <div class="col-md-auto">
                     <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="dogBinarization()" disabled=true id='dogBtn'>DoG Binarization</button>
-                        <div id='threshCurrentValue'>Threshold: 0.1</div>
-                        <input type="range" id='thresh_slider' onchange="updateThresh()" min="0" max="1" step="0.1" value="0.1">
-                        <div id='gauss1CurrentValue'>Gauss1: 15</div>
-                        <input type="range" id='gauss1_slider' onchange="updateGauss1()" min="1" max="25" step="1" value="15">
-                        <div id='gauss2CurrentValue'>Gauss2: 1.5</div>
-                        <input type="range" id='gauss2_slider' onchange="updateGauss2()" min="0.1" max="2.5" step="0.1" value="1.5">
-
-                    </div>
-                </div>
-                <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="ocropusSkewBinarization()" disabled=true id='ocroSkewBtn'>OCRopus Binarization (with skew correction)</button>
+                        <button class="btn btn-primary btn-block" onclick="ocropusBinarization()" disabled=true id='ocropusBtn'>OCRopus Binarization (with skew correction)</button>
                         <div id='maxSkewCurrentValue'>maxskew: 2</div>
                         <input type="range" id='maxskew_slider' onchange="updateMaxskew()" min="1" max="15" step="1" value="2">
                         <div id='skewStepsCurrentValue'>skewsteps: 8</div>
                         <input type="range" id='skewsteps_slider' onchange="updateSkewSteps()" min="1" max="10" step="1" value="8">
-
                     </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="container">
+            <!-- Example row of columns -->
+            <div class="row" style="visibility: hidden">
+                <div class="loader" id="spinner"></div>
+            </div>
+            <div class="row">
+                <div class="col-md-auto">
+                    <h2>Otsu</h2>
+                    <img id='otsu'></img>
                 </div>
                 <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="ocropusBinarization()" disabled=true id='ocropusBtn'>OCRopus Binarization</button>
-                    </div>
+                    <h2>Sauvola</h2>
+                    <img id="sauvola"></img>
+                </div>
+                <div class="col-md-auto">
+                    <h2>OCRopus</h2>
+                    <img id="ocropus"></img>
                 </div>
             </div>
-
-        </div>
-    </div>
-    <div class="container">
-        <!-- Example row of columns -->
-        <div class="row" style="visibility: hidden">
-            <div class="loader" id="spinner"></div>
-        </div>
-        <div class="row">
-            <div class="col-md-auto">
-                <h2>Otsu</h2>
-                <img id='otsu'></img>
-            </div>
-            <div class="col-md-auto">
-                <h2>Sauvola</h2>
-                <img id="sauvola"></img>
-            </div>
-            <div class="col-md-auto">
-                <h2>DoG</h2>
-                <img id="dog"></img>
-            </div>
-            <div class="col-md-auto">
-                <h2>OCRopus</h2>
-                <img id="ocropus"></img>
-            </div>
-            <div class="col-md-auto">
-                <h2>OCRopus (Skew Corrected)</h2>
-                <img id="ocropusskew"></img>
-            </div>
-        </div>
 </body>
 
 </html>

@@ -48,7 +48,7 @@
                 for (var index = 0; index < result.output.length; index++) {
                     var element = result.output[index];
                     if (Object.keys(element)[0] === "file") {
-                        if (element.file.name.includes(".txt")) {
+                        if (element.file["mime-type"] === "text/plain" && !(element.file.type === "log")) {
                             text += await getText(element);
                         }
                     }
@@ -93,7 +93,7 @@
                 for (var index = 0; index < result.output.length; index++) {
                     var element = result.output[index];
                     if (Object.keys(element)[0] === "file") {
-                        if (element.file.name.includes(".bin.png")) {
+                        if (element.file["mime-type"].includes("image/png") && !(element.file.name.includes("segmentationImage"))) {
                             if (first) {
                                 first = false;
                                 await uploadImageUrl(element)
@@ -111,7 +111,11 @@
     function binarize() {
         return new Promise(resolve => {
             var data = JSON.stringify({
-                "parameters": {},
+                "parameters": {
+                    "enableSkew":false,
+                    "maxskew":2.0,
+                    "skewsteps":8.0
+                },
                 "data": [
                     {
                         "inputImage": identifier
