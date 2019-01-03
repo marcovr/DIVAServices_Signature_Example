@@ -6,225 +6,116 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
-        crossorigin="anonymous">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <link href="jumbotron.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/linkurious.js/1.5.1/sigma.min.js"></script>
+    <script src="script.js"></script>
+    <script src="graph.js"></script>
+    <link href="style.css" rel="stylesheet">
 </head>
-<script>
-    var currentImage;
-    var currentFile;
-    var identifier;
 
-    /**
-     * Perform Otsu Binarization
-     * */
-    async function otsuBinarization() {
-        document.getElementById("spinner").style.visibility = 'visible';
-        var data = JSON.stringify({
-            "parameters": {},
-            "data": [
-                {
-                    "inputImage": identifier
-                }
-            ]
-        });
+<body onload="init()">
+    <div class="container">
+        <div>
+        <h1>Offline Signature Verification Demo</h1>
+        <br>
+        <p>
+            <h3 class="left">Input</h3><h3 class="right">Output</h3><br><br>
+            <label class="btn btn-primary" for="my-file-selector">
+                <input id="my-file-selector" type="file" style="display:none" 
+                onchange="fileChanged(this);">
+                Choose File...
+            </label>
+            <span class='label label-info' id="upload-file-info"></span>
+            <a href='#' id="outputLink" class="right">get file</a>
+        </p>
 
-        fetch("http://divaservices.unifr.ch/api/v2/binarization/otsubinarization/1", {
-            method: "POST",
-            body: data,
-            headers: new Headers({ 'content-type': 'application/json' })
-        }).then(function (res) {
-            return res.json();
-        }).then(async function (data) {
-            var result = await getResult(data.results[0].resultLink);
-            document.getElementById("otsu").src = result.output[0].file.url
-            document.getElementById("spinner").style.visibility = 'hidden';
-        })
-    }
+        <div class="row visgroup">
+            <div id="upload_info" class="col-md-res"><strong>Upload a file first</strong></div>
+            <img id="inputImage" class="visualization col-md-res"></img>
+            <div id="inputGraphView" class="visualization col-md-res"></div>
+            <pre class="visualization col-md-res" id="inputText"></pre>
+            <div class="col-md-auto loader-container"><div class="loader" id="spinner"></div></div>
+            <div id="outputGraphView" class="visualization col-md-res"></div>
+            <pre id="outputText" class="visualization col-md-res"></pre>
+            <div id="outputPlaceholder" class="visualization col-md-res placeholder"></div>
+        </div>
 
-
-    /**
-     * Perform Sauvola Binarization
-     * */
-    async function sauvolaBinarization() {
-        alert('Implement your code here!');
-    }
-
-    /**
-     * Perform OCRopus Binarization
-     * */
-    async function ocropusBinarization() {
-        alert('Implement your code here');
-    }
-    
-    /**
-     * 
-     * Fetch the result from a given url
-     * Polls for the result every 1000ms (1s)
-     *  
-     * */
-    function getResult(url) {
-        return new Promise(resolve => {
-            fetch(url, {
-                method: "GET"
-            }).then(function (res) {
-                return res.json();
-            }).then(function (data) {
-                if (data.status === "done") {
-                    resolve(data);
-                } else {
-                    setTimeout(function () {
-                        resolve(getResult(url));
-                    }, 1000);
-                }
-            })
-        })
-    }
-
-    /**
-     * Get the result from an upload operation
-     * Polls every 1000ms (1s) to check if the collection is available
-     * 
-     * */
-    function getUploadResult(collectionName) {
-        return new Promise(resolve => {
-            fetch('http://divaservices.unifr.ch/api/v2/collections/' + collectionName, {
-                method: "GET"
-            }).then(function (res) {
-                return res.json();
-            }).then(function (data) {
-                if (data.statusCode === 200) {
-                    resolve(data.files[0].file.identifier);
-                } else {
-                    setTimeout(function () {
-                        resolve(getUploadResult(collectionName));
-                    }, 1000);
-                }
-            })
-        })
-    }
-
-    /**
-     * Encodes the image as base64 string to upload it to DIVAServices
-     * the results are stored in the global variables 'currentFile' and 'currentImage'
-     * 
-     * */
-    function encodeImageFileAsURL(element) {
-        var file = element.files[0];
-        var reader = new FileReader();
-        reader.onloadend = function () {
-            currentImage = reader.result;
-            currentFile = file;
-            uploadImage();
-        }
-        reader.onload = function (e) {
-            document.getElementById('orig_image').src = e.target.result;
-            document.getElementById('upload_info').style.display = 'none';
-        }
-
-        reader.readAsDataURL(file);
-
-    }
-
-    /**
-     * Uploads the current image to DIVAServices
-     * */
-    function uploadImage() {
-        var data = JSON.stringify({
-            "files": [
-                {
-                    "type": "base64",
-                    "value": currentImage,
-                    "name": currentFile.name
-                }
-            ]
-        });
-        fetch("http://divaservices.unifr.ch/api/v2/collections", {
-            method: "POST",
-            body: data,
-            headers: new Headers({ 'content-type': 'application/json' })
-        }).then(function (res) {
-            return res.json();
-        }).then(async function (data) {
-            identifier = await getUploadResult(data.collection);
-            document.getElementById('otsuBtn').disabled = false;
-            document.getElementById('sauvolaBtn').disabled = false;
-            document.getElementById('ocropusBtn').disabled = false;
-        })
-    }
-
-    function updateThresh() {
-        document.getElementById("threshCurrentValue").innerHTML = "Threshold: " + document.getElementById("thresh_slider").value;
-    }
-    function updateGauss1() {
-        document.getElementById("gauss1CurrentValue").innerHTML = "Gauss1: " + document.getElementById("gauss1_slider").value;
-    }
-    function updateGauss2() {
-        document.getElementById("gauss2CurrentValue").innerHTML = "Gauss2: " + document.getElementById("gauss2_slider").value;
-    }
-
-</script>
-
-<body>
-    <div class="jumbotron">
-        <div class="container">
-            <h1>Binarization Experimentation</h1>
-            <p>This is an example for making Binarization. Keep having fun at ManuSciences!</p>
-            <p>
-                <h3>Upload</h3>
-                <label class="btn btn-primary" for="my-file-selector">
-                            <input id="my-file-selector" type="file" style="display:none" 
-                            onchange="$('#upload-file-info').html(this.files[0].name);encodeImageFileAsURL(this);">
-                            Choose File...
-                        </label>
-                <span class='label label-info' id="upload-file-info"></span>
-            </p>
-
-            <p id="upload_info_block">
-                <div id="upload_info"><strong>Upload a file first</strong></div>
-                <img id="orig_image"></img>
-            </p>
-
-            <div class="row">
-                <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="otsuBinarization()" disabled=true id='otsuBtn'>Otsu Binarization</button>
-                    </div>
+        <div class="row" id="buttons">
+            <div class="col-md-auto">
+                <div class="control-group button-wrapper">
+                    <button class="btn btn-primary btn-block" onclick="keypointGraph()" disabled>KeypointGraph</button>
                 </div>
-                <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="sauvolaBinarization()" disabled=true id='sauvolaBtn'>Sauvola Binarization</button>
+            </div>
+            <div class="col-md-auto">
+                <div class="control-group button-wrapper">
+                    <button class="btn btn-primary btn-block" onclick="graphTransform()" disabled>GraphTransform</button>
+                    
+                    <label>keepEdges
+                        <input type="checkbox" id='keepEdges' checked>
+                    </label>
+                    <div>method
+                        <select id='method'>
+                            <option>kspan</option>
+                            <option>knearest</option>
+                        </select>
                     </div>
-                </div>
-                <div class="col-md-auto">
-                    <div class="control-group button-wrapper">
-                        <button class="btn btn-primary btn-block" onclick="ocropusBinarization()" disabled=true id='ocropusBtn'>OCRopus Binarization</button>
+                    <div>numberK
+                        <input type="number" id='numberK' min="1" max="10" step="1" value="2">
+                    </div>
+                    <div>mergeMode
+                        <select id='mergeMode'>
+                            <option>minimum</option>
+                            <option>average</option>
+                        </select>
                     </div>
                 </div>
             </div>
-
+            <div class="col-md-auto">
+                <div class="control-group button-wrapper">
+                    <button class="btn btn-primary btn-block" onclick="ged()" disabled>GraphEditDistance</button>
+                    
+                    <div>nReference
+                        <input type="number" id='nReference' min="1" max="100" step="1" value="2">
+                    </div>
+                    <div>
+                        <label>sortMode
+                            <input type="checkbox" id='sortMode' checked>
+                        </label>
+                    </div>
+                    <div>
+                        <label>verificationMode
+                            <input type="checkbox" id='verificationMode'>
+                        </label>
+                    </div>
+                    <div class="disabled">nodeCost
+                        <input type="number" id='nodeCost' step="1" value="1" disabled>
+                    </div>
+                    <div class="disabled">edgeCost
+                        <input type="number" id='edgeCost' step="1" value="2" disabled>
+                    </div>
+                    <label class="disabled">useEdgeLength
+                        <input type="checkbox" id='useEdgeLength' disabled>
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <div class="control-group button-wrapper">
+                    <button class="btn btn-primary btn-block" onclick="sigEval()" disabled>SignatureEvaluation</button>
+                    
+                    <div>numberR
+                        <input type="number" id='numberR' min="1" max="100" step="1" value="2">
+                    </div>
+                    <div>numberG
+                        <input type="number" id='numberG' min="1" max="100" step="1" value="2">
+                    </div>
+                    <label>verification
+                        <input type="checkbox" id='verification'>
+                    </label>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
-    <div class="container">
-        <!-- Example row of columns -->
-        <div class="row" style="visibility: hidden">
-            <div class="loader" id="spinner"></div>
-        </div>
-        <div class="row">
-            <div class="col-md-auto">
-                <h2>Otsu</h2>
-                <img id='otsu'></img>
-            </div>
-            <div class="col-md-auto">
-                <h2>Sauvola</h2>
-                <img id="sauvola"></img>
-            </div>
-            <div class="col-md-auto" id="ocropus">
-                <h2>OCRopus</h2>
-                <img id="ocropus"></img>
-            </div>
-        </div>
 </body>
 
 </html>
